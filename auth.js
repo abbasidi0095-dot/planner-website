@@ -6,8 +6,8 @@
  * supabase-schema.sql in your Supabase project's SQL Editor.
  */
 
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+const SUPABASE_URL = 'https://dcjptetazbzqsaotdmql.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_j75DuI3AxwcmdSyY8JTGSw_2tyIIlfi';
 
 let supabase = null;
 let currentUser = null;
