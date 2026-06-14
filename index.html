@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root {
       --bg: #0b0b0f;
@@ -840,6 +841,290 @@
       }
     }
 
+    /* Auth UI */
+    .auth-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .auth-bar .user-chip {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      max-width: 180px;
+    }
+
+    .auth-bar .user-chip.visible {
+      display: inline-flex;
+    }
+
+    .auth-bar .user-chip strong {
+      color: var(--text);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-auth {
+      padding: 0.55rem 1.1rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-auth:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .btn-auth.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b0b0f;
+      border-color: transparent;
+    }
+
+    .btn-auth.primary:hover {
+      box-shadow: 0 10px 28px rgba(125, 211, 252, 0.28);
+    }
+
+    /* Auth modal overlay */
+    .auth-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(11, 11, 15, 0.75);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .auth-modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .auth-modal {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(20px) scale(0.98);
+      transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    .auth-modal-overlay.open .auth-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .auth-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .auth-modal-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+
+    .auth-modal-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: var(--transition);
+    }
+
+    .auth-modal-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 0.25rem;
+      padding: 0.75rem 1.5rem 0;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 0.65rem 0;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: var(--transition);
+    }
+
+    .auth-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+
+    .auth-body {
+      padding: 1.5rem;
+    }
+
+    .auth-form {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .auth-form.active {
+      display: flex;
+    }
+
+    .auth-form label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .auth-form input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      margin-top: 0.35rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .auth-form input:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .auth-form input::placeholder {
+      color: rgba(156, 163, 175, 0.55);
+    }
+
+    .auth-submit {
+      width: 100%;
+      padding: 0.9rem;
+      margin-top: 0.25rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b0b0f;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .auth-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(125, 211, 252, 0.28);
+    }
+
+    .auth-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .auth-message {
+      min-height: 1.5rem;
+      font-size: 0.85rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .auth-message.error {
+      color: var(--danger);
+    }
+
+    .auth-message.success {
+      color: var(--success);
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0.5rem 0;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Auth gate (protected route) */
+    .auth-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      text-align: center;
+      padding: 2rem;
+      background: rgba(11, 11, 15, 0.88);
+      backdrop-filter: blur(16px);
+    }
+
+    .auth-gate.visible {
+      display: flex;
+    }
+
+    .auth-gate h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      max-width: 500px;
+    }
+
+    .auth-gate p {
+      color: var(--text-muted);
+      max-width: 420px;
+    }
+
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -871,6 +1156,10 @@
         <a href="#week">Week</a>
         <a href="#month">Month</a>
         <a href="#tasks">Tasks</a>
+      </div>
+      <div class="auth-bar" id="auth-bar">
+        <span class="user-chip" id="user-chip"><strong id="user-email"></strong></span>
+        <button class="btn-auth" id="auth-action-btn" aria-label="Sign in">Sign In</button>
       </div>
       <button class="menu-toggle" aria-label="Open menu">☰</button>
     </nav>
@@ -1004,7 +1293,86 @@
     <span>＋</span> New Plan
   </button>
 
-  <script>
+  <!-- Auth gate (protected route) -->
+  <div class="auth-gate" id="auth-gate" aria-hidden="true">
+    <h2>Your planner is protected.</h2>
+    <p>Sign in to access your tasks, events, and preferences from any device.</p>
+    <button class="btn btn-primary" id="gate-signin-btn">Sign In to Continue</button>
+  </div>
+
+  <!-- Auth modal -->
+  <div class="auth-modal-overlay" id="auth-modal" aria-hidden="true">
+    <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+      <div class="auth-modal-header">
+        <h2 id="auth-modal-title">Welcome to AURA</h2>
+        <button class="auth-modal-close" id="auth-modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login" type="button">Sign In</button>
+        <button class="auth-tab" data-tab="signup" type="button">Sign Up</button>
+        <button class="auth-tab" data-tab="magic" type="button">Magic Link</button>
+      </div>
+      <div class="auth-body">
+        <form class="auth-form active" id="login-form" data-form="login">
+          <label>
+            Email
+            <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" />
+          </label>
+          <button type="submit" class="auth-submit">Sign In</button>
+          <div class="auth-message" id="login-message"></div>
+        </form>
+
+        <form class="auth-form" id="signup-form" data-form="signup">
+          <label>
+            Email
+            <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" placeholder="Create a password" required minlength="6" autocomplete="new-password" />
+          </label>
+          <button type="submit" class="auth-submit">Create Account</button>
+          <div class="auth-message" id="signup-message"></div>
+        </form>
+
+        <form class="auth-form" id="magic-form" data-form="magic">
+          <label>
+            Email
+            <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" />
+          </label>
+          <button type="submit" class="auth-submit">Send Magic Link</button>
+          <div class="auth-message" id="magic-message"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      initSupabase,
+      onAuthStateChange,
+      signIn,
+      signUp,
+      signInWithMagicLink,
+      signOut,
+      isAuthenticated,
+      isSupabaseConfigured
+    } from './auth.js';
+
+    import {
+      isPlannerStorageAvailable,
+      loadTasks,
+      saveTask,
+      deleteCompletedTasks,
+      loadEvents,
+      savePreferences,
+      loadPreferences
+    } from './planner.js';
+
     // Register GSAP plugins
     gsap.registerPlugin(ScrollTrigger);
 
@@ -1241,18 +1609,16 @@
       document.getElementById('stat-focus').textContent = (total * 0.5).toFixed(1);
     }
 
-    function addTask(text, tag = 'Personal') {
-      const card = document.createElement('div');
-      card.className = 'task-card';
-      card.innerHTML = `
-        <div class="check"></div>
-        <div class="task-text">${text}</div>
-        <div class="task-meta"><span class="tag tag-${tag.toLowerCase()}">${tag}</span></div>
-      `;
-      card.addEventListener('click', () => {
-        card.classList.toggle('completed');
-        updateStats();
-      });
+    async function addTask(text, tag = 'Personal') {
+      let task = { text, tag, completed: false };
+      if (syncEnabled) {
+        try {
+          task = await saveTask(task);
+        } catch (err) {
+          console.error('Failed to save task:', err);
+        }
+      }
+      const card = createTaskCard(task);
       taskList.appendChild(card);
       gsap.from(card, { x: -20, opacity: 0, duration: 0.4, ease: 'power2.out' });
       updateStats();
@@ -1273,7 +1639,14 @@
       newTaskInput.value = '';
     });
 
-    document.getElementById('clear-completed').addEventListener('click', () => {
+    document.getElementById('clear-completed').addEventListener('click', async () => {
+      if (syncEnabled) {
+        try {
+          await deleteCompletedTasks();
+        } catch (err) {
+          console.error('Failed to clear completed tasks:', err);
+        }
+      }
       const completed = taskList.querySelectorAll('.task-card.completed');
       completed.forEach(card => {
         gsap.to(card, {
@@ -1290,7 +1663,7 @@
       setTimeout(updateStats, 400);
     });
 
-    document.getElementById('refresh-today').addEventListener('click', () => {
+    document.getElementById('refresh-today').addEventListener('click', async () => {
       const focus = document.getElementById('main-focus');
       const options = [
         'Finish the quarterly design review.',
@@ -1298,10 +1671,18 @@
         'Prepare slides for tomorrow’s pitch.',
         'Deep work block: write the case study.'
       ];
+      const newFocus = options[Math.floor(Math.random() * options.length)];
       focus.style.opacity = 0;
-      setTimeout(() => {
-        focus.textContent = options[Math.floor(Math.random() * options.length)];
+      setTimeout(async () => {
+        focus.textContent = newFocus;
         focus.style.opacity = 1;
+        if (syncEnabled && currentPreferences) {
+          try {
+            currentPreferences = await savePreferences({ ...currentPreferences, main_focus: newFocus });
+          } catch (err) {
+            console.error('Failed to save preferences:', err);
+          }
+        }
       }, 200);
     });
 
@@ -1317,6 +1698,246 @@
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       gsap.globalTimeline.timeScale(0);
     }
+
+    /* -------------------------------------------------------------------------- */
+    /* Supabase auth & data sync                                                  */
+    /* -------------------------------------------------------------------------- */
+
+    const authActionBtn = document.getElementById('auth-action-btn');
+    const userChip = document.getElementById('user-chip');
+    const userEmail = document.getElementById('user-email');
+    const authModal = document.getElementById('auth-modal');
+    const authModalClose = document.getElementById('auth-modal-close');
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const authForms = document.querySelectorAll('.auth-form');
+    const authGate = document.getElementById('auth-gate');
+    const gateSigninBtn = document.getElementById('gate-signin-btn');
+
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const magicForm = document.getElementById('magic-form');
+
+    let syncEnabled = false;
+    let currentPreferences = null;
+
+    function openAuthModal() {
+      authModal.classList.add('open');
+      authModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeAuthModal() {
+      authModal.classList.remove('open');
+      authModal.setAttribute('aria-hidden', 'true');
+      authForms.forEach(f => f.reset());
+      document.querySelectorAll('.auth-message').forEach(m => {
+        m.textContent = '';
+        m.className = 'auth-message';
+      });
+    }
+
+    function switchAuthTab(tab) {
+      authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      authForms.forEach(f => f.classList.toggle('active', f.dataset.form === tab));
+    }
+
+    function setAuthMessage(formName, text, type = '') {
+      const el = document.getElementById(`${formName}-message`);
+      el.textContent = text;
+      el.className = `auth-message ${type}`;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = String(str ?? '');
+      return div.innerHTML;
+    }
+
+    function updateAuthUI(user) {
+      if (user) {
+        userEmail.textContent = user.email;
+        userChip.classList.add('visible');
+        authActionBtn.textContent = 'Sign Out';
+        authActionBtn.classList.add('primary');
+        authGate.classList.remove('visible');
+        authGate.setAttribute('aria-hidden', 'true');
+      } else {
+        userChip.classList.remove('visible');
+        authActionBtn.textContent = 'Sign In';
+        authActionBtn.classList.remove('primary');
+        if (isSupabaseConfigured()) {
+          authGate.classList.add('visible');
+          authGate.setAttribute('aria-hidden', 'false');
+        }
+      }
+    }
+
+    authActionBtn.addEventListener('click', () => {
+      if (isAuthenticated()) {
+        signOut();
+      } else {
+        openAuthModal();
+      }
+    });
+
+    gateSigninBtn.addEventListener('click', openAuthModal);
+    authModalClose.addEventListener('click', closeAuthModal);
+    authModal.addEventListener('click', e => {
+      if (e.target === authModal) closeAuthModal();
+    });
+
+    authTabs.forEach(tab => {
+      tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab));
+    });
+
+    loginForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = loginForm.querySelector('.auth-submit');
+      btn.disabled = true;
+      setAuthMessage('login', 'Signing in…');
+      const fd = new FormData(loginForm);
+      const { error } = await signIn(fd.get('email'), fd.get('password'));
+      btn.disabled = false;
+      if (error) {
+        setAuthMessage('login', error.message, 'error');
+      } else {
+        setAuthMessage('login', 'Welcome back!', 'success');
+        setTimeout(closeAuthModal, 800);
+      }
+    });
+
+    signupForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = signupForm.querySelector('.auth-submit');
+      btn.disabled = true;
+      setAuthMessage('signup', 'Creating account…');
+      const fd = new FormData(signupForm);
+      const { error } = await signUp(fd.get('email'), fd.get('password'));
+      btn.disabled = false;
+      if (error) {
+        setAuthMessage('signup', error.message, 'error');
+      } else {
+        setAuthMessage('signup', 'Check your email to confirm your account.', 'success');
+      }
+    });
+
+    magicForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = magicForm.querySelector('.auth-submit');
+      btn.disabled = true;
+      setAuthMessage('magic', 'Sending magic link…');
+      const fd = new FormData(magicForm);
+      const { error } = await signInWithMagicLink(fd.get('email'));
+      btn.disabled = false;
+      if (error) {
+        setAuthMessage('magic', error.message, 'error');
+      } else {
+        setAuthMessage('magic', 'Magic link sent! Check your inbox.', 'success');
+      }
+    });
+
+    function createTaskCard(task) {
+      const card = document.createElement('div');
+      card.className = `task-card${task.completed ? ' completed' : ''}`;
+      if (task.id) card.dataset.id = task.id;
+      card.innerHTML = `
+        <div class="check"></div>
+        <div class="task-text">${escapeHtml(task.text)}</div>
+        <div class="task-meta"><span class="tag tag-${(task.tag || 'Personal').toLowerCase()}">${escapeHtml(task.tag || 'Personal')}</span></div>
+      `;
+      card.addEventListener('click', () => toggleTask(card, task));
+      return card;
+    }
+
+    async function toggleTask(card, task) {
+      const completed = !card.classList.contains('completed');
+      card.classList.toggle('completed');
+      if (syncEnabled && task.id) {
+        try {
+          await saveTask({ ...task, completed });
+        } catch (err) {
+          console.error('Failed to update task:', err);
+          card.classList.toggle('completed');
+          return;
+        }
+      }
+      updateStats();
+    }
+
+    async function renderTasks(tasks) {
+      taskList.innerHTML = '';
+      tasks.forEach(task => taskList.appendChild(createTaskCard(task)));
+      updateStats();
+    }
+
+    async function renderEvents(events) {
+      const container = document.getElementById('week-events');
+      container.innerHTML = '';
+      if (!events.length) {
+        container.innerHTML = '<div class="event-row"><span class="event-time">—</span><span class="event-name">No events this week</span></div>';
+        return;
+      }
+      events.forEach(evt => {
+        const row = document.createElement('div');
+        row.className = 'event-row';
+        if (evt.id) row.dataset.id = evt.id;
+        row.innerHTML = `<span class="event-time">${escapeHtml(evt.day || '')}</span><span class="event-name">${escapeHtml(evt.name)}</span>`;
+        container.appendChild(row);
+      });
+    }
+
+    async function loadPlannerData() {
+      if (!syncEnabled) return;
+      try {
+        const [tasks, events, prefs] = await Promise.all([
+          loadTasks(),
+          loadEvents(),
+          loadPreferences()
+        ]);
+        await renderTasks(tasks);
+        await renderEvents(events);
+        currentPreferences = prefs;
+        if (prefs.main_focus) {
+          document.getElementById('main-focus').textContent = prefs.main_focus;
+        }
+      } catch (err) {
+        console.error('Failed to load planner data:', err);
+      }
+    }
+
+    function resetPlanner() {
+      const defaults = [
+        { text: 'Review project brief', tag: 'Work' },
+        { text: 'Morning run 5km', tag: 'Health' },
+        { text: 'Call dentist at 2 PM', tag: 'Personal' },
+        { text: 'Submit quarterly report', tag: 'Urgent' },
+        { text: 'Read 20 pages', tag: 'Personal' }
+      ];
+      taskList.innerHTML = '';
+      defaults.forEach(t => taskList.appendChild(createTaskCard({ ...t, completed: false })));
+      updateStats();
+
+      const weekContainer = document.getElementById('week-events');
+      weekContainer.innerHTML = `
+        <div class="event-row"><span class="event-time">Mon</span><span class="event-name">Strategy kickoff</span></div>
+        <div class="event-row"><span class="event-time">Wed</span><span class="event-name">Design critique</span></div>
+        <div class="event-row"><span class="event-time">Fri</span><span class="event-name">Sprint retrospective</span></div>
+      `;
+
+      document.getElementById('main-focus').textContent = 'Finish the quarterly design review.';
+      currentPreferences = null;
+    }
+
+    await initSupabase();
+
+    onAuthStateChange((user, event) => {
+      syncEnabled = isPlannerStorageAvailable() && !!user;
+      updateAuthUI(user);
+      if (user) {
+        loadPlannerData();
+      } else {
+        resetPlanner();
+      }
+    });
   </script>
 </body>
 </html>
