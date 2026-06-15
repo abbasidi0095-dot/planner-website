@@ -44,7 +44,21 @@
       background: var(--bg);
       color: var(--text);
       overflow-x: hidden;
-      line-height: 1.55;
+      overscroll-behavior-x: none;
+      min-height: 100vh;
+    }
+
+    html, body {
+      width: 100%;
+    }
+
+    /* Prevent layout shift and sideways scroll */
+    * {
+      max-inline-size: 100%;
+    }
+
+    img, video {
+      max-width: 100%;
     }
 
     /* Scroll progress indicator */
@@ -396,12 +410,12 @@
       font-weight: 600;
     }
 
-    .stats-row {
+    .stats {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.85rem;
+      margin: 1rem 0 1.5rem;
     }
-
     .stat {
       text-align: center;
       padding: 0.9rem 0.5rem;

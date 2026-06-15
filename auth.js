@@ -13,6 +13,7 @@ let supabase = null;
 let currentUser = null;
 const authStateCallbacks = [];
 let credentialsConfigured = false;
+let authCallbackDetected = false;
 
 /**
  * Test whether placeholder credentials have been replaced.
@@ -25,6 +26,35 @@ function areCredentialsConfigured(url, key) {
     !key.includes('your-anon-key') &&
     url.startsWith('https://')
   );
+}
+
+/**
+ * Determine the base site URL for auth redirects.
+ * Tries to infer the current deployment origin so the magic link and
+ * email confirmation flows work both locally and on GitHub Pages subfolders.
+ */
+export function getSiteUrl() {
+  if (typeof window === 'undefined') {
+    return 'https://abbasidi0095-dot.github.io/planner-website/';
+  }
+  const { protocol, host, pathname } = window.location;
+  // For file:// or unknown hosts, fall back to the known production URL.
+  if (!host || protocol === 'file:') {
+    return 'https://abbasidi0095-dot.github.io/planner-website/';
+  }
+  // Normalize pathname to folder root (this app is served from a subfolder).
+  const folder = pathname.endsWith('/') ? pathname : pathname + '/';
+  return `${protocol}//${host}${folder}`;
+}
+
+/**
+ * Check whether the current URL contains an auth callback fragment
+ * (access_token, refresh_token, type) from an email/magic link redirect.
+ */
+export function hasAuthCallbackInUrl() {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash;
+  return hash && /access_token=/.test(hash);
 }
 
 /**
@@ -96,10 +126,15 @@ export async function restoreSession() {
 
 /**
  * Sign up with email and password.
+ * Sends the user a confirmation email that redirects back to this app.
  */
 export async function signUp(email, password) {
   if (!supabase) return { data: null, error: new Error('Supabase not initialized') };
-  return supabase.auth.signUp({ email, password });
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: getSiteUrl() }
+  });
 }
 
 /**
@@ -119,9 +154,22 @@ export async function signInWithMagicLink(email) {
     email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: 'https://abbasidi0095-dot.github.io/planner-website/'
+      emailRedirectTo: getSiteUrl()
     }
   });
+}
+
+/**
+ * Exchange an auth code from the URL for a session.
+ * Useful for PKCE / email-confirmation flows when a code param is present.
+ */
+export async function exchangeAuthCode() {
+  if (!supabase) return { error: new Error('Supabase not initialized') };
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return { error: null };
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  return { error };
 }
 
 /**
@@ -158,4 +206,18 @@ export function isAuthenticated() {
  */
 export function isSupabaseConfigured() {
   return credentialsConfigured;
+}
+
+/**
+ * Returns true if the current page load is processing an auth callback.
+ */
+export function isAuthCallbackDetected() {
+  return authCallbackDetected;
+}
+
+/**
+ * Mark that an auth callback was detected (used by the UI to show a redirect screen).
+ */
+export function setAuthCallbackDetected(detected = true) {
+  authCallbackDetected = detected;
 }
