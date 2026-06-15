@@ -118,7 +118,8 @@ export async function signInWithMagicLink(email) {
   return supabase.auth.signInWithOtp({
     email,
     options: {
-      shouldCreateUser: true
+      shouldCreateUser: true,
+      emailRedirectTo: 'https://abbasidi0095-dot.github.io/planner-website/'
     }
   });
 }
